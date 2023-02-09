@@ -3,11 +3,6 @@ import { tweetsData } from './data.js'
 import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
 const tweetInput = document.getElementById('tweet-input')
 
-
-// tweetBtn.addEventListener('click', function(){
-//     console.log(tweetInput.value)
-// })
-
 document.addEventListener('click', function(e){
     // console.log(e.target.dataset)
     if(e.target.dataset.reply){
@@ -18,6 +13,10 @@ document.addEventListener('click', function(e){
         handleRetweetClick(e.target.dataset.retweet)
     } else if (e.target.id === 'tweet-btn'){
         handleTweetClick()
+    } else if(e.target.dataset.delete){
+        handleDeleteClick(e.target.dataset.delete)
+    } else if(e.target.dataset.comment){
+        handleCommentClick(e.target.dataset.comment)
     } else {
         console.log(`dataset not present`)
     }
@@ -76,6 +75,31 @@ function handleTweetClick(){
     
 }
 
+function handleDeleteClick(tweetId){
+    let itemIndex = tweetsData.findIndex(tweet=>{
+        return tweetId === tweet.uuid
+    })
+    console.log(itemIndex)
+    tweetsData.splice(itemIndex, 1)
+    render()
+}
+
+function handleCommentClick(tweetId){
+    const newComment = document.getElementById(`reply-input-${tweetId}`).value
+    tweetsData.forEach((tweet)=>{
+        if(tweet.uuid === tweetId){
+            tweet.replies.push({
+                handle: `@Scrimba`,
+                profilePic: `images/scrimbalogo.png`,
+                tweetText: newComment,
+                uuid:uuidv4()
+            })
+        }
+    })
+    document.getElementById(`reply-input-${tweetId}`).value = ''
+    render()
+}
+
 function getFeedHtml(){
     let feedHtml = ``
     
@@ -83,7 +107,7 @@ function getFeedHtml(){
         let repliesHtml = ""
         if(tweet.replies.length > 0){
             tweet.replies.forEach((reply)=>{
-                repliesHtml+=`<div class="tweet-reply">
+                repliesHtml+=`<div class="tweet-reply" data-comment="${reply.uuid}">
                 <div class="tweet-inner">
                     <img src="${reply.profilePic}" class="profile-pic">
                         <div>
@@ -93,8 +117,24 @@ function getFeedHtml(){
                     </div>
             </div>`
             })
+            repliesHtml+=`<div class="tweet-reply">
+                            <div class="tweet-inner">
+                                <img src="images/scrimbalogo.png" class="profile-pic">
+                                <textarea id="reply-input-${tweet.uuid}" placeholder="What's happening?"></textarea>
+                                </div>
+                                <button id="reply-btn" data-comment="${tweet.uuid}">Reply</button>
+                            </div>`
+        } else {
+            repliesHtml+=`<div class="tweet-reply">
+            <div class="tweet-inner">
+                <img src="images/scrimbalogo.png" class="profile-pic">
+                <textarea id="reply-input-${tweet.uuid}" placeholder="What's happening?"></textarea>
+                </div>
+                <button id="reply-btn" data-comment="${tweet.uuid}">Reply</button>
+            </div>` 
         }
-        
+        let heartIconClass = tweet.isLiked ? 'liked' : ''
+        let retweetIconClass = tweet.isRetweeted ? 'retweeted' : ''
 
         feedHtml += `
 <div class="tweet">
@@ -111,13 +151,13 @@ function getFeedHtml(){
                     ${tweet.replies.length}
                 </span>
                 <span class="tweet-detail">
-                    <i class="fa-solid fa-heart"
+                    <i class="fa-solid fa-heart ${heartIconClass}"
                     data-like="${tweet.uuid}"
                     ></i>
                     ${tweet.likes}
                 </span>
                 <span class="tweet-detail">
-                    <i class="fa-solid fa-retweet"
+                    <i class="fa-solid fa-retweet ${retweetIconClass}"
                     data-retweet="${tweet.uuid}"
                     ></i>
                     ${tweet.retweets}
@@ -136,6 +176,7 @@ function getFeedHtml(){
 </div>
 `
    })
+   localStorage.setItem('localTweetsData', JSON.stringify(tweetsData))
    return feedHtml 
 }
 
